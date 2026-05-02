@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  animeshop_db:
+    image: mysql:8.0
+    container_name: animeshop_db
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-anime_shop}
+      MYSQL_USER: ${MYSQL_USER:-admin}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-admin_pwd}
+    volumes:
+      - db_data:/var/lib/mysql
+      # Auto-import our existing AnimeShop configuration and artifacts
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - animeshop_net
+
+  animeshop_web:
+    image: wordpress:latest
+    container_name: animeshop_web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      WORDPRESS_DB_HOST: animeshop_db:3306
+      WORDPRESS_DB_USER: ${MYSQL_USER:-admin}
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:-admin_pwd}
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-anime_shop}
+    volumes:
+      # Inject ONLY our custom premium code
+      - ./wp-content/plugins/anime-shop:/var/www/html/wp-content/plugins/anime-shop
+      # Optionally mount theme directory if we end up creating a custom theme
+      # - ./wp-content/themes/anime-theme:/var/www/html/wp-content/themes/anime-theme
+    depends_on:
+      - animeshop_db
+    networks:
+      - animeshop_net
+
+volumes:
+  db_data:
+
+networks:
+  animeshop_net:
