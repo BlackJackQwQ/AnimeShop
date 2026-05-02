@@ -1,0 +1,20 @@
+# Ignore absolutely everything by default
+/*
+
+# ----------------------------------------------------------------------
+# EXCEPTION LAWS
+# We only track our custom code and deployment specs.
+# ----------------------------------------------------------------------
+
+# 1. Allow the wp-content/plugins/anime-shop path
+!wp-content/
+wp-content/*
+!wp-content/plugins/
+wp-content/plugins/*
+!wp-content/plugins/anime-shop/
+
+# 2. Allow Git and Docker configs
+!.gitignore
+!docker-compose.yml
+!init.sql
+!README.md
