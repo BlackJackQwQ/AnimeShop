@@ -29,6 +29,9 @@ services:
       WORDPRESS_DB_USER: ${MYSQL_USER:-admin}
       WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:-admin_pwd}
       WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-anime_shop}
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_HOME', 'http://localhost:8080');
+        define('WP_SITEURL', 'http://localhost:8080');
     volumes:
       # Inject ONLY our custom premium code
       - ./wp-content/plugins/anime-shop:/var/www/html/wp-content/plugins/anime-shop
