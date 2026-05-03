@@ -13,8 +13,8 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-admin_pwd}
     volumes:
       - db_data:/var/lib/mysql
-      # Auto-import our existing AnimeShop configuration and artifacts
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./setup.sql:/docker-entrypoint-initdb.d/02-setup.sql
     networks:
       - animeshop_net
 
