@@ -14,7 +14,6 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql
-      - ./setup.sql:/docker-entrypoint-initdb.d/02-setup.sql
     networks:
       - animeshop_net
 
@@ -23,18 +22,20 @@ services:
     container_name: animeshop_web
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "8888:80"
     environment:
       WORDPRESS_DB_HOST: animeshop_db:3306
       WORDPRESS_DB_USER: ${MYSQL_USER:-admin}
       WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:-admin_pwd}
       WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-anime_shop}
       WORDPRESS_CONFIG_EXTRA: |
-        define('WP_HOME', 'http://localhost:8080');
-        define('WP_SITEURL', 'http://localhost:8080');
+        define('WP_HOME', 'http://localhost:8888');
+        define('WP_SITEURL', 'http://localhost:8888');
     volumes:
       # Inject ONLY our custom premium code
       - ./wp-content/plugins/anime-shop:/var/www/html/wp-content/plugins/anime-shop
+      # Mount the uploads directory to persist and serve images
+      - ./wp-content/uploads:/var/www/html/wp-content/uploads
       # Optionally mount theme directory if we end up creating a custom theme
       # - ./wp-content/themes/anime-theme:/var/www/html/wp-content/themes/anime-theme
     depends_on:

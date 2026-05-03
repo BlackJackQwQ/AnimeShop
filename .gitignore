@@ -13,6 +13,9 @@ wp-content/*
 wp-content/plugins/*
 !wp-content/plugins/anime-shop/
 
+# 2. Allow the wp-content/uploads path for images
+!wp-content/uploads/
+
 # 2. Allow Git and Docker configs
 !.gitignore
 !docker-compose.yml
