@@ -17,4 +17,5 @@ wp-content/plugins/*
 !.gitignore
 !docker-compose.yml
 !init.sql
+!setup.sql
 !README.md
