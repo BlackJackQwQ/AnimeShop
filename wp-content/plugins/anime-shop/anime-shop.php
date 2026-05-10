@@ -1244,6 +1244,13 @@ function anime_shop_checkout_shortcode() {
                                 <span>Instant confirmation</span>
                             </span>
                         </label>
+                        <label class="payment-method-card">
+                            <input type="radio" name="payment_method" value="bank_transfer">
+                            <span class="method-meta">
+                                <strong>Bank Transfer</strong>
+                                <span>VietQR Speed Transfer</span>
+                            </span>
+                        </label>
                     </div>
 
                     <div id="anime-card-fields" style="display:none; margin-top:20px;">
@@ -1402,6 +1409,25 @@ function anime_shop_rest_update_settings( $request ) {
     return new WP_REST_Response( array( 'success' => true, 'message' => 'Settings securely synchronized.' ), 200 );
 }
 
+add_action( 'rest_api_init', function() {
+    register_rest_route( 'anime-shop/v1', '/confirm-payment', array(
+        'methods' => 'POST',
+        'callback' => 'anime_shop_rest_confirm_payment',
+        'permission_callback' => '__return_true',
+    ) );
+} );
+
+function anime_shop_rest_confirm_payment( $request ) {
+    $params = $request->get_json_params();
+    $order_id = isset($params['order_id']) ? intval($params['order_id']) : 0;
+    if (!$order_id) return new WP_REST_Response(array('success'=>false), 400);
+    
+    update_post_meta($order_id, 'order_status', 'processing');
+    update_post_meta($order_id, 'payment_confirmed_by_user', '1');
+    
+    return new WP_REST_Response(array('success'=>true), 200);
+}
+
 function anime_shop_rest_checkout( $request ) {
     $nonce = $request->get_header( 'X-WP-Nonce' );
     if ( ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
@@ -1477,11 +1503,32 @@ function anime_shop_rest_checkout( $request ) {
     // clear cart
     anime_shop_set_cart( array() );
 
+    // Push to Firebase for Global Realtime History
+    if ( ! is_wp_error( $order_id ) ) {
+        anime_shop_sync_order_to_firebase( $order_id );
+    }
+
     return new WP_REST_Response( array( 
         'success' => true, 
         'order_id' => $order_id, 
         'redirect' => home_url('/order-confirmed?order_id=' . $order_id) 
     ), 200 );
+}
+
+function anime_shop_sync_order_to_firebase($order_id) {
+    $firebase_url = 'https://animeshop-d06d1-default-rtdb.asia-southeast1.firebasedatabase.app/orders.json';
+    $order_data = array(
+        'id'        => $order_id,
+        'customer'  => get_post_meta($order_id, 'customer_name', true),
+        'total'     => floatval(get_post_meta($order_id, 'order_total', true)),
+        'time'      => current_time('H:i'),
+        'date'      => current_time('d/m'),
+    );
+    wp_remote_post($firebase_url, array(
+        'method'    => 'POST',
+        'body'      => json_encode($order_data),
+        'headers'   => array('Content-Type' => 'application/json'),
+    ));
 }
 
 // --- Admin: Add Product (custom page like WooCommerce) ---
@@ -2707,8 +2754,53 @@ function anime_shop_success_shortcode() {
             <div class="success-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 6L9 17l-5-5"/></svg>
             </div>
-            <h1>Acquisition Confirmed</h1>
-            <p>Your artifact's journey has begun. Documentation and tracking details will be sent to your authenticated email shortly.</p>
+            <?php 
+            $method = $order_id ? get_post_meta($order_id, 'payment_method', true) : '';
+            $is_bank = ($method === 'bank_transfer');
+            ?>
+            <h1><?php echo $is_bank ? 'Awaiting Payment' : 'Acquisition Confirmed'; ?></h1>
+            <p><?php echo $is_bank ? 'Your order is held in terminal state. Please complete the transfer below to proceed.' : 'Your artifact\'s journey has begun. Documentation and tracking details will be sent shortly.'; ?></p>
+
+            <?php 
+            if ($order_id) {
+                $method = get_post_meta($order_id, 'payment_method', true);
+                if ($method === 'bank_transfer') {
+                    $total = get_post_meta($order_id, 'order_total', true);
+                    $qr_url = "https://img.vietqr.io/image/BIDV-8870382887-qr_only.jpg?amount=" . $total . "&addInfo=ANS" . $order_id . "&accountName=ANIME%20SHOP%20CURATION";
+                    ?>
+                    <div class="bank-transfer-instruction">
+                        <h3>Bank Transfer</h3>
+                        <p>Scan the VietQR code to finalize your acquisition.</p>
+                        <img src="<?php echo esc_url($qr_url); ?>" alt="VietQR" />
+                        <div class="bank-info-table">
+                            <div class="bank-info-row"><strong>Bank</strong><span>BIDV (Ngân hàng Đầu tư và Phát triển)</span></div>
+                            <div class="bank-info-row"><strong>Account</strong><span>8870382887</span></div>
+                            <div class="bank-info-row"><strong>Holder</strong><span>ANIME SHOP CURATION</span></div>
+                            <div class="bank-info-row"><strong>Content</strong><span>ANS<?php echo $order_id; ?></span></div>
+                        </div>
+                        <button id="confirm-bank-transfer" class="btn-premium" style="width:100%; margin-top:25px; padding:15px; border-radius:8px;">I Have Completed Transfer</button>
+                        <script>
+                        document.getElementById('confirm-bank-transfer').addEventListener('click', function() {
+                            const btn = this;
+                            btn.disabled = true;
+                            btn.innerText = 'Verifying...';
+                            fetch('/wp-json/anime-shop/v1/confirm-payment', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ order_id: <?php echo $order_id; ?> })
+                            }).then(res => res.json()).then(data => {
+                                if(data.success) {
+                                    alert('Notification sent to admin. Your order status will be updated shortly.');
+                                    window.location.reload();
+                                }
+                            });
+                        });
+                        </script>
+                    </div>
+                    <?php
+                }
+            }
+            ?>
             
             <?php if ($order_id) echo do_shortcode('[anime_order_view order_id="'.$order_id.'"]'); ?>
 
@@ -2866,8 +2958,95 @@ function anime_shop_search_shortcode() {
     <?php
     return ob_get_clean();
 }
+add_shortcode( 'anime_global_history', 'anime_shop_global_history_shortcode' );
+function anime_shop_global_history_shortcode() {
+    ob_start();
+    ?>
+    <div class="global-history-page">
+        <header class="history-header">
+            <h1>Global Transmission History</h1>
+            <p>Real-time acquisition feed from the master database.</p>
+        </header>
 
+        <div id="realtime-order-feed" class="order-feed-container">
+            <!-- Items injected by Firebase -->
+            <div class="feed-placeholder">Establishing secure connection...</div>
+        </div>
 
+        <style>
+            .global-history-page { max-width: 800px; margin: 60px auto; padding: 0 20px; }
+            .history-header { text-align: center; margin-bottom: 40px; }
+            .history-header h1 { font-size: 36px; font-weight: 800; text-transform: uppercase; letter-spacing: -1px; margin-bottom: 10px; }
+            .history-header p { color: #666; font-size: 16px; }
+            
+            .order-feed-container { display: flex; flex-direction: column; gap: 15px; }
+            .feed-item { 
+                background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 20px; 
+                display: flex; align-items: center; justify-content: space-between;
+                animation: slideIn 0.4s ease-out; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            }
+            .feed-left { display: flex; flex-direction: column; gap: 4px; }
+            .feed-customer { font-weight: 700; font-size: 18px; color: #000; }
+            .feed-meta { font-size: 13px; color: #888; font-family: monospace; }
+            .feed-right { text-align: right; }
+            .feed-total { font-weight: 800; font-size: 20px; color: #000; display: block; }
+            .feed-badge { 
+                display: inline-block; padding: 4px 10px; background: #000; color: #fff; 
+                font-size: 10px; font-weight: 700; text-transform: uppercase; border-radius: 4px; margin-top: 6px;
+            }
 
+            .feed-placeholder { text-align: center; color: #aaa; padding: 40px; font-style: italic; }
 
+            @keyframes slideIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        </style>
 
+        <script type="module">
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+            import { getDatabase, ref, onChildAdded } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-database.js";
+
+            const firebaseConfig = {
+                apiKey: "AIzaSyDffqox62axUs3rn2-hxGgW0ySQ4kMDfrU",
+                authDomain: "animeshop-d06d1.firebaseapp.com",
+                databaseURL: "https://animeshop-d06d1-default-rtdb.asia-southeast1.firebasedatabase.app",
+                projectId: "animeshop-d06d1",
+                storageBucket: "animeshop-d06d1.firebasestorage.app",
+                messagingSenderId: "881369982790",
+                appId: "1:881369982790:web:10a1e94aec3f24ad85a747"
+            };
+
+            const app = initializeApp(firebaseConfig);
+            const db = getDatabase(app);
+            const ordersRef = ref(db, 'orders');
+            const feedContainer = document.getElementById('realtime-order-feed');
+
+            let firstLoad = true;
+
+            onChildAdded(ordersRef, (snapshot) => {
+                const data = snapshot.val();
+                if (firstLoad) {
+                    feedContainer.innerHTML = '';
+                    firstLoad = false;
+                }
+
+                const item = document.createElement('div');
+                item.className = 'feed-item';
+                item.innerHTML = `
+                    <div class="feed-left">
+                        <span class="feed-customer">${data.customer || 'Anonymous Collector'}</span>
+                        <span class="feed-meta">ENTRY ID: #${data.id} • TIME: ${data.time} • DATE: ${data.date}</span>
+                    </div>
+                    <div class="feed-right">
+                        <span class="feed-total">${new Intl.NumberFormat('vi-VN').format(data.total)} ₫</span>
+                        <span class="feed-badge">Verified Transaction</span>
+                    </div>
+                `;
+                feedContainer.prepend(item);
+            });
+        </script>
+    </div>
+    <?php
+    return ob_get_clean();
+}

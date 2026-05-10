@@ -191,6 +191,18 @@ body.anime-shop-page {
     transform: translateY(-1px);
 }
 
+.btn-premium {
+    background: #1d2327 !important;
+    color: #ffffff !important;
+    border: none;
+    cursor: pointer;
+}
+
+body.dark-theme .btn-premium {
+    background: #ffffff !important;
+    color: #000000 !important;
+}
+
 /* Homepage Styles */
 .anime-hero {
     padding: 100px 20px;
@@ -2194,16 +2206,48 @@ body.anime-shop-page {
     padding: 18px;
     font-size: 14px;
     font-weight: 800;
+    cursor: pointer;
+    border: none;
+    background: #000;
+    color: #fff !important;
+}
+
+body.dark-theme .checkout-submit-btn {
+    background: #fff;
+    color: #000 !important;
+}
+
+/* Cart summary button specific fix */
+.cart-checkout-btn.checkout-btn {
+    width: 100%;
+    margin-top: 30px;
+    padding: 18px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    border: none;
+    background: #000;
+    color: #fff !important;
+    border-radius: 4px;
+    text-align: center;
+    display: block;
+}
+
+body.dark-theme .cart-checkout-btn.checkout-btn {
+    background: #fff;
+    color: #000 !important;
 }
 
 /* Success Page Styling */
 .success-page {
-    height: 70vh;
+    min-height: 80vh;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
-    padding: 20px;
+    padding: 120px 20px 60px; /* Top padding to avoid header overlap */
+    box-sizing: border-box;
 }
 
 .success-card {
@@ -2840,3 +2884,81 @@ body.dark-theme .dashboard-tabs a.active {
 #discovery-search:focus {
     border-color: var(--btn-primary-bg);
 }
+
+/* Bank Transfer UI Improvements */
+.bank-transfer-instruction {
+    background: #fff;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+    transition: transform 0.3s ease;
+}
+
+.bank-transfer-instruction:hover {
+    transform: translateY(-5px);
+}
+
+.bank-transfer-instruction img {
+    border: 1px solid #000;
+    padding: 5px;
+    background: #fff;
+}
+
+.payment-method-card input:checked + .method-meta {
+    color: #000;
+}
+
+.payment-method-card:has(input:checked) {
+    border-color: #000;
+    background: #f9f9f9;
+}
+
+.bank-transfer-instruction {
+    background: #ffffff !important;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.15);
+    color: #000000 !important;
+    text-align: center;
+    max-width: 450px;
+    margin: 0 auto 40px; /* Centered with bottom margin */
+    border: 1px solid #eee;
+}
+
+.bank-transfer-instruction h3 {
+    font-size: 24px;
+    font-weight: 800;
+    margin-top: 0;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.bank-transfer-instruction p {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.bank-transfer-instruction img {
+    width: 250px !important;
+    height: 250px !important;
+    object-fit: contain;
+    margin: 0 auto 30px;
+    display: block;
+    background: #fff;
+}
+
+.bank-info-table {
+    text-align: left;
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #eee;
+}
+.bank-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+.bank-info-row strong { color: #000; }
+.bank-info-row span { color: #555; }
