@@ -1,24 +1,27 @@
-# Ignore absolutely everything by default
+# Ignore everything by default
 /*
 
-# ----------------------------------------------------------------------
-# EXCEPTION LAWS
-# We only track our custom code and deployment specs.
-# ----------------------------------------------------------------------
-
-# 1. Allow the wp-content/plugins/anime-shop path
+# 1. Track custom plugin
 !wp-content/
 wp-content/*
 !wp-content/plugins/
 wp-content/plugins/*
 !wp-content/plugins/anime-shop/
 
-# 2. Allow the wp-content/uploads path for images
-!wp-content/uploads/
-
-# 2. Allow Git and Docker configs
-!.gitignore
-!docker-compose.yml
-!init.sql
-!setup.sql
+# 2. Track custom root scripts
+!reorder_and_rebuild.php
+!patch_url.py
+!wp-config-production.php
+!fix_urls.sql
 !README.md
+!products.csv
+
+# 3. Track GitHub workflows
+!.github/
+
+# 4. Ignore local sensitive files
+wp-config.php
+.cloudflared/
+.docker/
+AnimeShop_Migration.zip
+anime_shop_production.sql
