@@ -1,0 +1,11 @@
+[2026-05-02 06:32:00] Admin Enqueue Hook: post.php. Screen ID: anime_product
+[2026-05-02 06:32:25] Admin Enqueue Hook: post.php. Screen ID: anime_product
+[2026-05-02 06:32:38] Saving product 741. POST vars: {"_wpnonce":"2cc330d6c3","_wp_http_referer":"\/AnimeShop\/wp-admin\/post.php?post=741&action=edit","user_ID":1,"action":"editpost","originalaction":"editpost","post_author":1,"post_type":"anime_product","original_post_status":"publish","referredby":"http:\/\/localhost\/AnimeShop\/wp-admin\/post.php?post=741&action=edit","_wp_original_http_referer":"http:\/\/localhost\/AnimeShop\/wp-admin\/post.php?post=741&action=edit","post_ID":"741","meta-box-order-nonce":"c1b574f01d","closedpostboxesnonce":"817930323f","post_title":"Dragon Ball: Goku GT Spec","samplepermalinknonce":"173b7d9451","wp-preview":"","hidden_post_status":"publish","post_status":"publish","hidden_post_password":"","hidden_post_visibility":"public","visibility":"public","post_password":"","mm":"04","jj":"30","aa":"2026","hh":"17","mn":"39","ss":"12","hidden_mm":"04","cur_mm":"05","hidden_jj":"30","cur_jj":"02","hidden_aa":"2026","cur_aa":"2026","hidden_hh":"17","cur_hh":"06","hidden_mn":"39","cur_mn":"32","original_publish":"Update","save":"Update","anime_shop_product_data_nonce":"5d7669ccc0","_price":"120000","_sale_price":"","_sku":"","stock":"0","_in_stock":"1","weight":"","length":"","width":"","height":"","post_category":["20","14"],"_product_image_ids":"758,757,756,755,754,753","post_name":"dragon-ball-goku-gt-spec","post_mime_type":"","ID":741,"comment_status":"closed","ping_status":"closed"}
+[2026-05-02 06:32:40] Admin Enqueue Hook: post.php. Screen ID: anime_product
+[2026-05-02 06:32:46] Admin Enqueue Hook: post.php. Screen ID: anime_product
+[2026-05-02 06:32:47] Admin Enqueue Hook: post.php. Screen ID: anime_product
+[2026-05-02 06:32:53] Admin Enqueue Hook: edit.php. Screen ID: edit-anime_product
+[2026-05-02 06:33:54] Admin Enqueue Hook: post.php. Screen ID: anime_product
+[2026-05-02 06:38:19] Admin Enqueue Hook: post.php. Screen ID: anime_product
+[2026-05-02 06:38:48] Admin Enqueue Hook: post.php. Screen ID: anime_product
+[2026-05-02 06:38:53] Admin Enqueue Hook: edit.php. Screen ID: edit-anime_product
