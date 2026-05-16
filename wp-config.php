@@ -5,6 +5,14 @@
  * @package WordPress
  */
 
+// Detect SSL and Host from proxy (Ngrok/Cloudflare)
+if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+    $_SERVER['HTTPS'] = 'on';
+}
+if (isset($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+    $_SERVER['HTTP_HOST'] = $_SERVER['HTTP_X_FORWARDED_HOST'];
+}
+
 // Dynamic URL: works for both localhost and other domains
 if ( isset( $_SERVER['HTTP_HOST'] ) ) {
     $scheme = ( ! empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ) ? 'https' : 'http';

@@ -203,6 +203,20 @@ function anime_shop_import_from_csv( $file_path = null ) {
         if ( ! empty( $data['SKU'] ) ) update_post_meta( $post_id, '_sku', trim( $data['SKU'] ) );
         if ( isset( $data['Stock'] ) ) update_post_meta( $post_id, 'stock', trim( $data['Stock'] ) );
 
+        // New fields: Dimensions & Weight
+        if ( isset( $data['Weight'] ) ) update_post_meta( $post_id, 'weight', trim( $data['Weight'] ) );
+        if ( isset( $data['Length'] ) ) update_post_meta( $post_id, 'length', trim( $data['Length'] ) );
+        if ( isset( $data['Width'] ) ) update_post_meta( $post_id, 'width', trim( $data['Width'] ) );
+        if ( isset( $data['Height'] ) ) update_post_meta( $post_id, 'height', trim( $data['Height'] ) );
+
+        // New fields: Attributes (JSON)
+        if ( ! empty( $data['Attributes'] ) ) {
+            $attrs = json_decode( $data['Attributes'], true );
+            if ( is_array( $attrs ) ) {
+                update_post_meta( $post_id, '_product_attributes', $attrs );
+            }
+        }
+
         if ( ! empty( $data['Images'] ) ) {
             require_once ABSPATH . 'wp-admin/includes/image.php';
             require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -212,9 +226,10 @@ function anime_shop_import_from_csv( $file_path = null ) {
             $gallery_ids = array();
             foreach ( $image_urls as $img_url ) {
                 if ( ! filter_var( $img_url, FILTER_VALIDATE_URL ) ) continue;
-                $tmp = media_sideload_image( $img_url, $post_id, null, 'src' );
-                if ( is_wp_error( $tmp ) ) continue;
-                $attach_id = attachment_url_to_postid( $tmp );
+                // Changed 'src' to 'id' to get the attachment ID directly (more reliable)
+                $attach_id = media_sideload_image( $img_url, $post_id, null, 'id' );
+                if ( is_wp_error( $attach_id ) ) continue;
+                
                 if ( $attach_id ) {
                     $gallery_ids[] = intval( $attach_id );
                     if ( ! has_post_thumbnail( $post_id ) ) set_post_thumbnail( $post_id, $attach_id );
@@ -1771,7 +1786,8 @@ function anime_shop_handle_export() {
     header( 'Content-Type: text/csv; charset=utf-8' );
     header( 'Content-Disposition: attachment; filename=' . $filename );
     $out = fopen( 'php://output', 'w' );
-    fputcsv( $out, array( 'Name', 'Description', 'Short description', 'Regular price', 'Sale price', 'SKU', 'Stock', 'In stock?', 'Published', 'Categories', 'Images' ) );
+    // Added new columns: Weight, Length, Width, Height, Attributes
+    fputcsv( $out, array( 'Name', 'Description', 'Short description', 'Regular price', 'Sale price', 'SKU', 'Stock', 'In stock?', 'Published', 'Categories', 'Images', 'Weight', 'Length', 'Width', 'Height', 'Attributes' ) );
 
     foreach ( $posts as $p ) {
         $id = $p->ID;
@@ -1784,22 +1800,70 @@ function anime_shop_handle_export() {
         $stock = get_post_meta( $id, 'stock', true );
         $in_stock = get_post_meta( $id, '_in_stock', true );
         $pub = $p->post_status === 'publish' ? '1' : '0';
+        
+        // Dimensions & Weight
+        $weight = get_post_meta( $id, 'weight', true );
+        $length = get_post_meta( $id, 'length', true );
+        $width = get_post_meta( $id, 'width', true );
+        $height = get_post_meta( $id, 'height', true );
+        
+        // Attributes (JSON)
+        $attrs = get_post_meta( $id, '_product_attributes', true );
+        $attrs_json = ! empty( $attrs ) ? json_encode( $attrs, JSON_UNESCAPED_UNICODE ) : '';
+
         $terms = get_the_terms( $id, 'category' );
-        $cats = '';
+        $cats_formatted = array();
         if ( $terms && ! is_wp_error( $terms ) ) {
-            $names = wp_list_pluck( $terms, 'name' );
-            $cats = implode( ', ', $names );
+            foreach ( $terms as $term ) {
+                // Get the full hierarchy path for the term
+                $ancestors = get_ancestors( $term->term_id, 'category' );
+                $ancestors = array_reverse( $ancestors );
+                $path = array();
+                foreach ( $ancestors as $anc_id ) {
+                    $anc = get_term( $anc_id, 'category' );
+                    if ( $anc && ! is_wp_error( $anc ) ) {
+                        $path[] = $anc->name;
+                    }
+                }
+                $path[] = $term->name;
+                $cats_formatted[] = implode( ' > ', $path );
+            }
+            $cats = implode( ', ', $cats_formatted );
         }
-        $img_ids = get_post_meta( $id, '_product_image_ids', true );
-        if ( ! is_array( $img_ids ) ) {
-            if ( empty( $img_ids ) ) $img_ids = array(); else $img_ids = array_filter( array_map( 'intval', explode( ',', $img_ids ) ) );
+
+        // Image Logic: Include featured image + gallery images
+        $img_ids_raw = get_post_meta( $id, '_product_image_ids', true );
+        $img_ids = array();
+        
+        // Handle Featured Image
+        $thumb_id = get_post_thumbnail_id( $id );
+        if ( $thumb_id ) {
+            $img_ids[] = intval( $thumb_id );
         }
+        
+        // Handle Gallery IDs
+        if ( is_array( $img_ids_raw ) ) {
+            $img_ids = array_merge( $img_ids, array_map( 'intval', $img_ids_raw ) );
+        } elseif ( ! empty( $img_ids_raw ) ) {
+            $gallery_array = array_filter( array_map( 'intval', explode( ',', $img_ids_raw ) ) );
+            $img_ids = array_merge( $img_ids, $gallery_array );
+        }
+        
+        // Final unique IDs
+        $img_ids = array_unique( $img_ids );
+        
         $imgs = array();
         foreach ( $img_ids as $aid ) {
+            if ( ! $aid ) continue;
             $url = wp_get_attachment_url( $aid );
             if ( $url ) $imgs[] = $url;
         }
-        fputcsv( $out, array( $name, $desc, $short, $price, $sale, $sku, $stock, $in_stock, $pub, $cats, implode( ',', $imgs ) ) );
+        
+        fputcsv( $out, array( 
+            $name, $desc, $short, $price, $sale, $sku, $stock, $in_stock, $pub, $cats, 
+            implode( ',', $imgs ),
+            $weight, $length, $width, $height, $attrs_json
+        ) );
     }
 
     fclose( $out );
@@ -3049,4 +3113,31 @@ function anime_shop_global_history_shortcode() {
     </div>
     <?php
     return ob_get_clean();
+}
+
+/**
+ * Security: Restrict Admin Dashboard Access for non-administrators.
+ * This ensures that customers stay on the frontend and never see the WP backend.
+ */
+add_action( 'admin_init', 'anime_shop_restrict_admin_access' );
+function anime_shop_restrict_admin_access() {
+    // Allow AJAX requests (needed for some frontend features)
+    if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) return;
+
+    // Redirect anyone who cannot manage options (non-admins) to the home page
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_redirect( home_url() );
+        exit;
+    }
+}
+
+/**
+ * Hide the WordPress Admin Bar for non-administrators.
+ */
+add_filter( 'show_admin_bar', 'anime_shop_hide_admin_bar' );
+function anime_shop_hide_admin_bar( $show ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return false;
+    }
+    return $show;
 }
